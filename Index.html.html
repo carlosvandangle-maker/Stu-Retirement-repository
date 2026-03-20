@@ -5,89 +5,128 @@
   <title>Stu's Retirement Countdown</title>
 
   <style>
-    body { 
-      font-family: Arial; 
-      text-align: center; 
+    body {
+      font-family: Arial;
+      text-align: center;
       margin-top: 40px;
-      padding-top: 80px; /* ensures content doesn't overlap watermark */
+      padding-top: 80px;
+      overflow-x: hidden;
     }
 
-    #countdown { font-size: 2rem; margin-top: 20px; }
-
-    input, button { padding: 10px; margin-top: 10px; }
-
-    table { margin: 30px auto; border-collapse: collapse; }
-    td, th { border: 1px solid #ccc; padding: 10px 15px; }
-
-    /* ✅ TOP-LEFT WATERMARK */
     #bg-title {
       position: fixed;
       top: 10px;
       left: 15px;
       font-size: 4rem;
       color: rgba(0,0,0,0.08);
-      z-index: 0;
-      pointer-events: none;
-      user-select: none;
     }
 
-    /* ensure main content is above watermark */
-    body > * {
-      position: relative;
-      z-index: 1;
+    #moodEmoji {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      font-size: 8rem;
+    }
+
+    .bounce {
+      animation: bounce 0.5s infinite;
+    }
+
+    @keyframes bounce {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-25px); }
+    }
+
+    #celebration {
+      position: fixed;
+      top: 100px;
+      left: 0;
+      width: 100%;
+      pointer-events: none;
+      display: none;
+    }
+
+    .confetti {
+      position: absolute;
+      font-size: 1.8rem;
+      animation: fall 3s linear infinite;
+    }
+
+    @keyframes fall {
+      0% { transform: translateY(-50px) rotate(0deg); }
+      100% { transform: translateY(500px) rotate(360deg); }
+    }
+
+    #celebrationText {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #ff5722;
+      animation: pop 1s ease infinite alternate;
+    }
+
+    @keyframes pop {
+      from { transform: scale(1); }
+      to { transform: scale(1.2); }
     }
 
     .day-bar {
       width: 80%;
-      height: 30px;
+      height: 35px;
       background: #eee;
       margin: 20px auto;
       border-radius: 20px;
       position: relative;
+      overflow: hidden;
     }
 
     .day-fill {
       height: 100%;
-      background: #4caf50;
-      border-radius: 20px;
       width: 0%;
+      background: linear-gradient(to right, #4caf50, #8bc34a);
     }
 
     .day-marker {
       position: absolute;
-      top: -10px;
       width: 4px;
-      height: 50px;
+      height: 45px;
       background: blue;
+      top: -5px;
     }
 
-    #dayPercentText {
-      font-size: 1.4rem;
-      font-weight: bold;
-      margin-top: 15px;
+    table {
+      margin: 30px auto;
+      border-collapse: collapse;
     }
 
-    .moon-img { width: 120px; margin-top: 20px; }
+    td, th {
+      border: 1px solid #ccc;
+      padding: 10px 15px;
+    }
+
+    input {
+      padding: 6px;
+      width: 80px;
+      text-align: center;
+    }
   </style>
 </head>
 
 <body>
 
 <div id="bg-title">Stu's Retirement</div>
+<div id="moodEmoji">😞</div>
 
-<h2>Select a target date:</h2>
-<input type="datetime-local" id="targetInput"><br>
-
-<label>Leave days remaining:</label><br>
-<input type="number" id="leaveDays" value="0"><br>
-
-<button onclick="startCountdown()">Start Countdown</button>
+<div id="celebration">
+  <div id="celebrationText">🎉</div>
+</div>
 
 <h1 id="countdown"></h1>
 
-<img id="moonImage" class="moon-img">
+<!-- 🏖 LEAVE INPUT -->
+<label>Leave Days: </label>
+<input type="number" id="leaveInput" value="15" min="0">
 
-<div id="dayPercentText">0% of today completed</div>
+<div id="dayPercentText"></div>
 
 <div class="day-bar">
   <div class="day-fill" id="dayFill"></div>
@@ -98,6 +137,7 @@
 <tr><th>Metric</th><th>Value</th></tr>
 <tr><td>🇬🇧 Working Days</td><td id="workdays"></td></tr>
 <tr><td>⏱ Working Hours</td><td id="workhours"></td></tr>
+<tr><td>☿ Mercury Days</td><td id="mercuryDays"></td></tr>
 <tr><td>👶 UK Births</td><td id="births"></td></tr>
 <tr><td>⚰️ UK Deaths</td><td id="deaths"></td></tr>
 <tr><td>💰 Paydays</td><td id="paydays"></td></tr>
@@ -107,59 +147,110 @@
 </table>
 
 <script>
-let targetDate, timer;
+const targetDate = new Date("2026-07-28T16:30:00");
 
+const MERCURY_DAY_MS = 176*24*60*60*1000;
 const BIRTHS_PER_DAY = 1800;
 const DEATHS_PER_DAY = 1700;
 
-const moonImages = [
-  "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005048/frames/730x730_1x1_30p/moon.0001.jpg",
-  "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005048/frames/730x730_1x1_30p/moon.0010.jpg",
-  "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005048/frames/730x730_1x1_30p/moon.0020.jpg",
-  "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005048/frames/730x730_1x1_30p/moon.0030.jpg"
-];
+setInterval(update,1000);
+update();
 
-function startCountdown(){
-  const val = document.getElementById("targetInput").value;
-  if(!val) return alert("Pick a date");
-
-  targetDate = new Date(val);
-
-  if(timer) clearInterval(timer);
-  timer = setInterval(updateCountdown,1000);
-
-  updateCountdown();
-}
-
-document.getElementById("leaveDays").addEventListener("input", () => {
-  if(targetDate) updateCountdown();
-});
-
-function updateCountdown(){
+function update(){
   const now = new Date();
+
   const diff = targetDate - now;
 
-  if(diff <= 0){
-    document.getElementById("countdown").innerHTML = "Time's up!";
-    clearInterval(timer);
-    return;
-  }
-
-  const seconds = Math.floor(diff/1000);
-  const minutes = Math.floor(seconds/60);
-  const hours = Math.floor(minutes/60);
-  const days = Math.floor(hours/24);
+  const d = Math.floor(diff/(1000*60*60*24));
+  const h = Math.floor(diff/(1000*60*60)%24);
+  const m = Math.floor(diff/(1000*60)%60);
+  const s = Math.floor(diff/1000%60);
 
   document.getElementById("countdown").innerHTML =
-    `${days} days ${pad(hours%24)}:${pad(minutes%60)}:${pad(seconds%60)}`;
+    `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
 
-  // 🌙 moon
-  const cycle = 29.53;
-  const phase = ((now/(1000*60*60*24)) % cycle)/cycle;
-  document.getElementById("moonImage").src =
-    moonImages[Math.floor(phase * moonImages.length)];
+  const leaveDays = Number(document.getElementById("leaveInput").value) || 0;
 
-  // 🧮 working days
+  // working day graph
+  const start = new Date(now); start.setHours(9,0,0,0);
+  const lunchStart = new Date(now); lunchStart.setHours(12,30,0,0);
+  const lunchEnd = new Date(now); lunchEnd.setHours(13,30,0,0);
+
+  const isFriday = now.getDay() === 5;
+
+  const end = new Date(now);
+  if(isFriday) end.setHours(16,30,0,0);
+  else end.setHours(17,0,0,0);
+
+  const totalWork = (lunchStart-start)+(end-lunchEnd);
+  let worked=0;
+
+  if(now<=start) worked=0;
+  else if(now<lunchStart) worked=now-start;
+  else if(now<=lunchEnd) worked=lunchStart-start;
+  else if(now<end) worked=(lunchStart-start)+(now-lunchEnd);
+  else worked=totalWork;
+
+  const percent = (worked/totalWork)*100;
+
+  document.getElementById("dayFill").style.width = percent+"%";
+  document.getElementById("dayMarker").style.left = percent+"%";
+  document.getElementById("dayPercentText").innerText =
+    percent.toFixed(1)+"% of today completed";
+
+const el = document.getElementById("moodEmoji");
+
+// smoother progression
+if (percent < 10) {
+  el.innerText = "😩";
+} else if (percent < 25) {
+  el.innerText = "😒";
+} else if (percent < 45) {
+  el.innerText = "😐";
+} else if (percent < 65) {
+  el.innerText = "🙂";
+} else if (percent < 80) {
+  el.innerText = "😊";
+} else if (percent < 90) {
+  el.innerText = "😄";
+} else if (percent < 97) {
+  el.innerText = "😁";
+} else {
+  el.innerText = "🤩";
+}
+
+// bounce near end
+if (percent > 90) {
+  el.classList.add("bounce");
+} else {
+  el.classList.remove("bounce");
+}
+
+  // celebrations
+  const morningStart = new Date(now); morningStart.setHours(9,0,0,0);
+  const morningEnd = new Date(now); morningEnd.setHours(9,5,0,0);
+
+  const eveningStart = new Date(end.getTime() - 10*60*1000);
+  const eveningEnd = end;
+
+  const c = document.getElementById("celebration");
+  const text = document.getElementById("celebrationText");
+
+  if(now >= morningStart && now <= morningEnd){
+    c.style.display = "block";
+    text.innerText = "🎉 Fresh Start! 🎉";
+    spawnConfetti();
+  }
+  else if(now >= eveningStart && now <= eveningEnd){
+    c.style.display = "block";
+    text.innerText = "🎉 Almost Free! 🎉";
+    spawnConfetti();
+  }
+  else {
+    c.style.display = "none";
+  }
+
+  // metrics
   let wd=0;
   let t=new Date(now);
 
@@ -168,77 +259,55 @@ function updateCountdown(){
     if(t.getDay()!=0 && t.getDay()!=6) wd++;
   }
 
-  let leave = Number(document.getElementById("leaveDays").value) || 0;
-  wd = Math.max(0, wd - leave);
+  wd=Math.max(0,wd-leaveDays);
 
   document.getElementById("workdays").innerHTML=wd;
-  document.getElementById("workhours").innerHTML = wd * 7;
+  document.getElementById("workhours").innerHTML=wd*7;
 
-  // 👶 births & ⚰️ deaths
-  const totalDays = diff / (1000*60*60*24);
+  document.getElementById("mercuryDays").innerHTML =
+    (diff/MERCURY_DAY_MS).toFixed(4);
+
+  const daysLeft = diff/(1000*60*60*24);
+
   document.getElementById("births").innerHTML =
-    Math.floor(totalDays * BIRTHS_PER_DAY).toLocaleString();
+    Math.floor(daysLeft*BIRTHS_PER_DAY).toLocaleString();
+
   document.getElementById("deaths").innerHTML =
-    Math.floor(totalDays * DEATHS_PER_DAY).toLocaleString();
+    Math.floor(daysLeft*DEATHS_PER_DAY).toLocaleString();
 
-  // 🎯 daily progress
-  const start = new Date(now); start.setHours(9,0,0);
-  const lunchStart = new Date(now); lunchStart.setHours(12,30,0);
-  const lunchEnd = new Date(now); lunchEnd.setHours(13,30,0);
-  const end = new Date(now); end.setHours(17,0,0);
-
-  let percent = 0;
-
-  if(now < start) percent = 0;
-  else if(now > end) percent = 100;
-  else {
-    let worked = 0;
-
-    if(now < lunchStart){
-      worked = now - start;
-    } else if(now < lunchEnd){
-      worked = lunchStart - start;
-    } else {
-      worked = (lunchStart - start) + (now - lunchEnd);
-    }
-
-    const total = (lunchStart - start) + (end - lunchEnd);
-    percent = (worked / total) * 100;
-  }
-
-  document.getElementById("dayFill").style.width = percent + "%";
-  document.getElementById("dayMarker").style.left = percent + "%";
-
-  document.getElementById("dayPercentText").innerText =
-    percent.toFixed(1) + "% of today completed";
-
-  // 💰 paydays
-  let pd=0;
-  let d2=new Date(now);
+  let pd=0, d2=new Date(now);
   while(d2<targetDate){
     if(d2.getDate()==28) pd++;
     d2.setDate(d2.getDate()+1);
   }
   document.getElementById("paydays").innerHTML=pd;
 
-  // 🗑 bins
-  const ref=new Date("2026-03-20");
-  let bins=0;
-  let b=new Date(ref);
-
+  let b=new Date("2026-03-20"),bins=0;
   while(b<targetDate){
     if(b>now) bins++;
     b.setDate(b.getDate()+14);
   }
   document.getElementById("bins").innerHTML=bins;
 
-  // 🌑 moon cycles
   document.getElementById("moonCycles").innerHTML =
     Math.floor(diff/(29.53*86400000));
 
-  // 🎬 movies
   document.getElementById("movies").innerHTML =
     Math.floor(diff/(2*3600000));
+}
+
+function spawnConfetti(){
+  const container = document.getElementById("celebration");
+
+  for(let i=0;i<4;i++){
+    const el = document.createElement("div");
+    el.className="confetti";
+    el.innerText=["🎉","✨","🎊"][Math.floor(Math.random()*3)];
+    el.style.left = Math.random()*100+"%";
+
+    container.appendChild(el);
+    setTimeout(()=>el.remove(),3000);
+  }
 }
 
 function pad(n){return n.toString().padStart(2,'0');}
