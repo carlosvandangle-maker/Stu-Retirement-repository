@@ -166,6 +166,16 @@ const MERCURY_DAY_MS = 176*24*60*60*1000;
 const BIRTHS_PER_DAY = 1800;
 const DEATHS_PER_DAY = 1700;
 
+const bankHolidays = [
+  "2026-01-01","2026-04-03","2026-04-06",
+  "2026-05-04","2026-05-25","2026-08-31",
+  "2026-12-25","2026-12-28"
+];
+
+function isBankHoliday(d){
+  return bankHolidays.includes(d.toISOString().split("T")[0]);
+}
+
 setInterval(update,1000);
 update();
 
@@ -183,6 +193,7 @@ function update(){
 
   const leaveDays = Number(document.getElementById("leaveInput").value) || 0;
 
+  // WORK TIMES
   const start = new Date(now); start.setHours(9,0,0,0);
   const lunchStart = new Date(now); lunchStart.setHours(12,30,0,0);
   const lunchEnd = new Date(now); lunchEnd.setHours(13,30,0,0);
@@ -193,6 +204,31 @@ function update(){
   if(isFriday) end.setHours(16,30,0,0);
   else end.setHours(17,0,0,0);
 
+  // CELEBRATIONS
+  const morningStart = new Date(now); morningStart.setHours(9,0,0,0);
+  const morningEnd = new Date(now); morningEnd.setHours(9,5,0,0);
+
+  const eveningStart = new Date(end.getTime() - 10*60*1000);
+  const eveningEnd = end;
+
+  const c = document.getElementById("celebration");
+  const text = document.getElementById("celebrationText");
+
+  if(now >= morningStart && now <= morningEnd){
+    c.style.display = "block";
+    text.innerText = "🎉 Fresh Start! 🎉";
+    spawnConfetti();
+  }
+  else if(now >= eveningStart && now <= eveningEnd){
+    c.style.display = "block";
+    text.innerText = "🎉 Almost Free! 🎉";
+    spawnConfetti();
+  }
+  else {
+    c.style.display = "none";
+  }
+
+  // DAY PROGRESS
   const totalWork = (lunchStart-start)+(end-lunchEnd);
   let worked=0;
 
@@ -209,14 +245,14 @@ function update(){
   document.getElementById("dayPercentText").innerText =
     percent.toFixed(1)+"% of today completed";
 
+  // TOTAL PROGRESS
   const totalDuration = targetDate - startDate;
   const elapsedTotal = now - startDate;
-  const remaining = targetDate - now;
 
   let totalPercent = (elapsedTotal / totalDuration) * 100;
   totalPercent = Math.max(0, Math.min(100, totalPercent));
 
-  const totalDaysLeft = Math.ceil(remaining / (1000 * 60 * 60 * 24));
+  const totalDaysLeft = Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
 
   document.getElementById("totalFill").style.width = totalPercent + "%";
   document.getElementById("totalMarker").style.left = totalPercent + "%";
@@ -224,27 +260,13 @@ function update(){
   document.getElementById("totalDaysText").innerText =
     `📅 ${totalDaysLeft} total days remaining (${totalPercent.toFixed(1)}% complete)`;
 
-  const el = document.getElementById("moodEmoji");
-
-  if (percent < 10) el.innerText = "😩";
-  else if (percent < 25) el.innerText = "😒";
-  else if (percent < 45) el.innerText = "😐";
-  else if (percent < 65) el.innerText = "🙂";
-  else if (percent < 80) el.innerText = "😊";
-  else if (percent < 90) el.innerText = "😄";
-  else if (percent < 97) el.innerText = "😁";
-  else el.innerText = "🤩";
-
-  if (percent > 90) el.classList.add("bounce");
-  else el.classList.remove("bounce");
-
-  // METRICS
+  // WORKING DAYS (minus weekends + bank holidays)
   let wd=0;
   let t=new Date(now);
 
   while(t<targetDate){
     t.setDate(t.getDate()+1);
-    if(t.getDay()!=0 && t.getDay()!=6) wd++;
+    if(t.getDay()!=0 && t.getDay()!=6 && !isBankHoliday(t)) wd++;
   }
 
   wd=Math.max(0,wd-leaveDays);
@@ -252,6 +274,7 @@ function update(){
   document.getElementById("workdays").innerHTML=wd;
   document.getElementById("workhours").innerHTML=wd*7;
 
+  // ✅ MERCURY DAYS RESTORED
   document.getElementById("mercuryDays").innerHTML =
     (diff/MERCURY_DAY_MS).toFixed(4);
 
@@ -273,8 +296,7 @@ function update(){
   document.getElementById("paydays").innerHTML=pd;
 
   // BIN DAYS
-  let b=new Date("2026-03-20");
-  let bins=0;
+  let b=new Date("2026-03-20"),bins=0;
   while(b<targetDate){
     if(b>now) bins++;
     b.setDate(b.getDate()+14);
@@ -287,17 +309,28 @@ function update(){
   document.getElementById("movies").innerHTML =
     Math.floor(diff/(2*3600000));
 
-  // EXACT EASTENDERS (Mon–Thu)
+  // EASTENDERS
   let ee=0;
   let eedate = new Date(now);
-
   while(eedate < targetDate){
     eedate.setDate(eedate.getDate()+1);
-    const day = eedate.getDay();
-    if(day >= 1 && day <= 4) ee++;
+    if(eedate.getDay()>=1 && eedate.getDay()<=4) ee++;
   }
-
   document.getElementById("eastenders").innerHTML = ee;
+}
+
+function spawnConfetti(){
+  const container = document.getElementById("celebration");
+
+  for(let i=0;i<4;i++){
+    const el = document.createElement("div");
+    el.className="confetti";
+    el.innerText=["🎉","✨","🎊"][Math.floor(Math.random()*3)];
+    el.style.left = Math.random()*100+"%";
+
+    container.appendChild(el);
+    setTimeout(()=>el.remove(),3000);
+  }
 }
 
 function pad(n){return n.toString().padStart(2,'0');}
