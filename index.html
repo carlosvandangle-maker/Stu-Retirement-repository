@@ -155,6 +155,7 @@
 <tr><td>🗑 Bin Days</td><td id="bins"></td></tr>
 <tr><td>🌑 Moon Cycles</td><td id="moonCycles"></td></tr>
 <tr><td>🎬 Movies</td><td id="movies"></td></tr>
+<tr><td>📺 EastEnders Episodes</td><td id="eastenders"></td></tr>
 </table>
 
 <script>
@@ -208,7 +209,6 @@ function update(){
   document.getElementById("dayPercentText").innerText =
     percent.toFixed(1)+"% of today completed";
 
-  // TOTAL BAR
   const totalDuration = targetDate - startDate;
   const elapsedTotal = now - startDate;
   const remaining = targetDate - now;
@@ -224,7 +224,6 @@ function update(){
   document.getElementById("totalDaysText").innerText =
     `📅 ${totalDaysLeft} total days remaining (${totalPercent.toFixed(1)}% complete)`;
 
-  // EMOJI
   const el = document.getElementById("moodEmoji");
 
   if (percent < 10) el.innerText = "😩";
@@ -238,30 +237,6 @@ function update(){
 
   if (percent > 90) el.classList.add("bounce");
   else el.classList.remove("bounce");
-
-  // CELEBRATIONS
-  const morningStart = new Date(now); morningStart.setHours(9,0,0,0);
-  const morningEnd = new Date(now); morningEnd.setHours(9,5,0,0);
-
-  const eveningStart = new Date(end.getTime() - 10*60*1000);
-  const eveningEnd = end;
-
-  const c = document.getElementById("celebration");
-  const text = document.getElementById("celebrationText");
-
-  if(now >= morningStart && now <= morningEnd){
-    c.style.display = "block";
-    text.innerText = "🎉 Fresh Start! 🎉";
-    spawnConfetti();
-  }
-  else if(now >= eveningStart && now <= eveningEnd){
-    c.style.display = "block";
-    text.innerText = "🎉 Almost Free! 🎉";
-    spawnConfetti();
-  }
-  else {
-    c.style.display = "none";
-  }
 
   // METRICS
   let wd=0;
@@ -288,14 +263,18 @@ function update(){
   document.getElementById("deaths").innerHTML =
     Math.floor(daysLeft*DEATHS_PER_DAY).toLocaleString();
 
-  let pd=0, d2=new Date(now);
+  // PAYDAYS
+  let pd=0;
+  let d2=new Date(now);
   while(d2<targetDate){
     if(d2.getDate()==28) pd++;
     d2.setDate(d2.getDate()+1);
   }
   document.getElementById("paydays").innerHTML=pd;
 
-  let b=new Date("2026-03-20"),bins=0;
+  // BIN DAYS
+  let b=new Date("2026-03-20");
+  let bins=0;
   while(b<targetDate){
     if(b>now) bins++;
     b.setDate(b.getDate()+14);
@@ -307,20 +286,18 @@ function update(){
 
   document.getElementById("movies").innerHTML =
     Math.floor(diff/(2*3600000));
-}
 
-function spawnConfetti(){
-  const container = document.getElementById("celebration");
+  // EXACT EASTENDERS (Mon–Thu)
+  let ee=0;
+  let eedate = new Date(now);
 
-  for(let i=0;i<4;i++){
-    const el = document.createElement("div");
-    el.className="confetti";
-    el.innerText=["🎉","✨","🎊"][Math.floor(Math.random()*3)];
-    el.style.left = Math.random()*100+"%";
-
-    container.appendChild(el);
-    setTimeout(()=>el.remove(),3000);
+  while(eedate < targetDate){
+    eedate.setDate(eedate.getDate()+1);
+    const day = eedate.getDay();
+    if(day >= 1 && day <= 4) ee++;
   }
+
+  document.getElementById("eastenders").innerHTML = ee;
 }
 
 function pad(n){return n.toString().padStart(2,'0');}
@@ -328,4 +305,3 @@ function pad(n){return n.toString().padStart(2,'0');}
 
 </body>
 </html>
-```
