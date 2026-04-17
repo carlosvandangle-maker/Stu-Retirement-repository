@@ -213,7 +213,7 @@ function update(){
   earnedPay.innerText=earned;
 
   // BIN DAYS
- let binCount = 0;
+let binCount = 0;
 let b = new Date("2026-03-20");
 
 while(b < targetDate){
@@ -221,8 +221,8 @@ while(b < targetDate){
   b.setDate(b.getDate() + 14);
 }
 
-document.getElementById("bins").innerText = binCount; 
-  // MOON
+document.getElementById("bins").innerText = binCount;
+   // MOON
   moon.innerText=Math.floor(diff/(29.53*86400000));
 
   // MOVIES
