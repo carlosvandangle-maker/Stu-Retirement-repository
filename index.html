@@ -10,7 +10,6 @@
       text-align: center;
       margin-top: 40px;
       padding-top: 80px;
-      overflow-x: hidden;
     }
 
     #bg-title {
@@ -26,7 +25,6 @@
       top: 20px;
       right: 20px;
       font-size: 8rem;
-      transition: transform 0.3s ease;
     }
 
     .bounce {
@@ -34,57 +32,15 @@
     }
 
     @keyframes bounce {
-      0%,100% { transform: translateY(0); }
-      50% { transform: translateY(-25px); }
-    }
-
-    #celebration {
-      position: fixed;
-      top: 100px;
-      left: 0;
-      width: 100%;
-      pointer-events: none;
-      display: none;
-    }
-
-    .confetti {
-      position: absolute;
-      font-size: 1.8rem;
-      animation: fall 3s linear infinite;
-    }
-
-    @keyframes fall {
-      0% { transform: translateY(-50px) rotate(0deg); }
-      100% { transform: translateY(500px) rotate(360deg); }
-    }
-
-    #celebrationText {
-      font-size: 2.5rem;
-      font-weight: bold;
-      color: #ff5722;
-      animation: pop 1s ease infinite alternate;
-    }
-
-    @keyframes pop {
-      from { transform: scale(1); }
-      to { transform: scale(1.2); }
-    }
-
-    input {
-      padding: 6px;
-      width: 80px;
-      text-align: center;
-      margin-bottom: 10px;
+      50% { transform: translateY(-20px); }
     }
 
     .day-bar {
       width: 80%;
-      height: 35px;
+      height: 30px;
       background: #eee;
-      margin: 20px auto;
+      margin: 10px auto 30px;
       border-radius: 20px;
-      position: relative;
-      overflow: hidden;
     }
 
     .day-fill {
@@ -93,26 +49,25 @@
       background: linear-gradient(to right, #4caf50, #8bc34a);
     }
 
-    .day-marker {
-      position: absolute;
-      width: 4px;
-      height: 45px;
-      background: blue;
-      top: -5px;
-    }
-
     #totalFill {
-      background: linear-gradient(to right, #ff9800, #ffc107);
+      background: linear-gradient(to right, orange, gold);
     }
 
     table {
-      margin: 30px auto;
+      margin: 20px auto;
       border-collapse: collapse;
     }
 
     td, th {
       border: 1px solid #ccc;
-      padding: 10px 15px;
+      padding: 8px 12px;
+    }
+
+    #celebration {
+      position: fixed;
+      top: 100px;
+      width: 100%;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -121,27 +76,25 @@
 
 <div id="bg-title">Stu's Retirement</div>
 <div id="moodEmoji">😩</div>
-
-<div id="celebration">
-  <div id="celebrationText">🎉</div>
-</div>
+<div id="celebration"></div>
 
 <h1 id="countdown"></h1>
 
 <label>Leave Days: </label>
-<input type="number" id="leaveInput" value="15" min="0">
+<input type="number" id="leaveInput" value="15">
 
+<h3>🟢 Today's Work Progress (9:00–17:00)</h3>
 <div id="dayPercentText"></div>
 
 <div class="day-bar">
   <div class="day-fill" id="dayFill"></div>
-  <div class="day-marker" id="dayMarker"></div>
 </div>
 
-<h3 id="totalDaysText"></h3>
+<h3>🟠 Career Progress (01/04/2002 → Retirement)</h3>
+<div id="totalDaysText"></div>
+
 <div class="day-bar">
   <div class="day-fill" id="totalFill"></div>
-  <div class="day-marker" id="totalMarker"></div>
 </div>
 
 <table>
@@ -149,32 +102,27 @@
 <tr><td>🇬🇧 Working Days</td><td id="workdays"></td></tr>
 <tr><td>⏱ Working Hours</td><td id="workhours"></td></tr>
 <tr><td>☿ Mercury Days</td><td id="mercuryDays"></td></tr>
-<tr><td>👶 UK Births</td><td id="births"></td></tr>
-<tr><td>⚰️ UK Deaths</td><td id="deaths"></td></tr>
-<tr><td>💰 Paydays</td><td id="paydays"></td></tr>
+<tr><td>👶 Births</td><td id="births"></td></tr>
+<tr><td>⚰️ Deaths</td><td id="deaths"></td></tr>
+<tr><td>💰 Future Paydays</td><td id="paydays"></td></tr>
+<tr><td>💷 Paychecks Stolen</td><td id="earnedPay"></td></tr>
 <tr><td>🗑 Bin Days</td><td id="bins"></td></tr>
-<tr><td>🌑 Moon Cycles</td><td id="moonCycles"></td></tr>
+<tr><td>🌑 Moon Cycles</td><td id="moon"></td></tr>
 <tr><td>🎬 Movies</td><td id="movies"></td></tr>
-<tr><td>📺 EastEnders Episodes</td><td id="eastenders"></td></tr>
+<tr><td>📺 EastEnders</td><td id="ee"></td></tr>
 </table>
 
 <script>
 const targetDate = new Date("2026-07-28T16:30:00");
-const startDate = new Date("2026-03-20T00:00:00");
+const startDate = new Date("2002-04-01");
 
 const MERCURY_DAY_MS = 176*24*60*60*1000;
 const BIRTHS_PER_DAY = 1800;
 const DEATHS_PER_DAY = 1700;
 
 const bankHolidays = [
-  "2026-01-01","2026-04-03","2026-04-06",
-  "2026-05-04","2026-05-25","2026-08-31",
-  "2026-12-25","2026-12-28"
+  "2026-04-03","2026-04-06","2026-05-04","2026-05-25"
 ];
-
-function isBankHoliday(d){
-  return bankHolidays.includes(d.toISOString().split("T")[0]);
-}
 
 setInterval(update,1000);
 update();
@@ -183,55 +131,23 @@ function update(){
   const now = new Date();
   const diff = targetDate - now;
 
-  const d = Math.floor(diff/(1000*60*60*24));
-  const h = Math.floor(diff/(1000*60*60)%24);
-  const m = Math.floor(diff/(1000*60)%60);
-  const s = Math.floor(diff/1000%60);
+  // COUNTDOWN
+  const d = Math.floor(diff/86400000);
+  const h = Math.floor(diff/3600000 % 24);
+  const m = Math.floor(diff/60000 % 60);
+  const s = Math.floor(diff/1000 % 60);
 
-  document.getElementById("countdown").innerHTML =
-    `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
+  countdown.innerText = `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
 
-  const leaveDays = Number(document.getElementById("leaveInput").value) || 0;
-
-  // WORK TIMES
+  // DAY PROGRESS
   const start = new Date(now); start.setHours(9,0,0,0);
   const lunchStart = new Date(now); lunchStart.setHours(12,30,0,0);
   const lunchEnd = new Date(now); lunchEnd.setHours(13,30,0,0);
+  const end = new Date(now); end.setHours(17,0,0,0);
 
-  const isFriday = now.getDay() === 5;
-
-  const end = new Date(now);
-  if(isFriday) end.setHours(16,30,0,0);
-  else end.setHours(17,0,0,0);
-
-  // CELEBRATIONS
-  const morningStart = new Date(now); morningStart.setHours(9,0,0,0);
-  const morningEnd = new Date(now); morningEnd.setHours(9,5,0,0);
-
-  const eveningStart = new Date(end.getTime() - 10*60*1000);
-  const eveningEnd = end;
-
-  const c = document.getElementById("celebration");
-  const text = document.getElementById("celebrationText");
-
-  if(now >= morningStart && now <= morningEnd){
-    c.style.display = "block";
-    text.innerText = "🎉 Fresh Start! 🎉";
-    spawnConfetti();
-  }
-  else if(now >= eveningStart && now <= eveningEnd){
-    c.style.display = "block";
-    text.innerText = "🎉 Almost Free! 🎉";
-    spawnConfetti();
-  }
-  else {
-    c.style.display = "none";
-  }
-
-  // DAY PROGRESS
   const totalWork = (lunchStart-start)+(end-lunchEnd);
-  let worked=0;
 
+  let worked=0;
   if(now<=start) worked=0;
   else if(now<lunchStart) worked=now-start;
   else if(now<=lunchEnd) worked=lunchStart-start;
@@ -240,95 +156,99 @@ function update(){
 
   const percent = (worked/totalWork)*100;
 
-  document.getElementById("dayFill").style.width = percent+"%";
-  document.getElementById("dayMarker").style.left = percent+"%";
-  document.getElementById("dayPercentText").innerText =
-    percent.toFixed(1)+"% of today completed";
+  dayFill.style.width = percent+"%";
+  dayPercentText.innerText = percent.toFixed(1)+"% complete today";
 
-  // TOTAL PROGRESS
-  const totalDuration = targetDate - startDate;
-  const elapsedTotal = now - startDate;
+  // EMOJI
+  if(percent<25) moodEmoji.innerText="😩";
+  else if(percent<50) moodEmoji.innerText="😐";
+  else if(percent<75) moodEmoji.innerText="😊";
+  else moodEmoji.innerText="🤩";
 
-  let totalPercent = (elapsedTotal / totalDuration) * 100;
-  totalPercent = Math.max(0, Math.min(100, totalPercent));
+  if(percent>90) moodEmoji.classList.add("bounce");
+  else moodEmoji.classList.remove("bounce");
 
-  const totalDaysLeft = Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
+  // TOTAL CAREER
+  const totalPercent = ((now-startDate)/(targetDate-startDate))*100;
+  totalFill.style.width = totalPercent+"%";
 
-  document.getElementById("totalFill").style.width = totalPercent + "%";
-  document.getElementById("totalMarker").style.left = totalPercent + "%";
+  totalDaysText.innerText =
+    `${d} days remaining | ${totalPercent.toFixed(1)}% of career complete`;
 
-  document.getElementById("totalDaysText").innerText =
-    `📅 ${totalDaysLeft} total days remaining (${totalPercent.toFixed(1)}% complete)`;
-
-  // WORKING DAYS (minus weekends + bank holidays)
-  let wd=0;
-  let t=new Date(now);
-
+  // WORKING DAYS
+  let wd=0, t=new Date(now);
   while(t<targetDate){
     t.setDate(t.getDate()+1);
-    if(t.getDay()!=0 && t.getDay()!=6 && !isBankHoliday(t)) wd++;
+    if(t.getDay()>0 && t.getDay()<6 &&
+       !bankHolidays.includes(t.toISOString().split("T")[0])) wd++;
   }
 
-  wd=Math.max(0,wd-leaveDays);
+  const leave = Number(leaveInput.value)||0;
+  wd = Math.max(0, wd - leave);
 
-  document.getElementById("workdays").innerHTML=wd;
-  document.getElementById("workhours").innerHTML=wd*7;
+  workdays.innerText=wd;
+  workhours.innerText=wd*7;
 
-  // ✅ MERCURY DAYS RESTORED
-  document.getElementById("mercuryDays").innerHTML =
-    (diff/MERCURY_DAY_MS).toFixed(4);
+  // OTHER METRICS
+  const daysLeft = diff/86400000;
 
-  const daysLeft = diff/(1000*60*60*24);
+  mercuryDays.innerText=(diff/MERCURY_DAY_MS).toFixed(4);
+  births.innerText=Math.floor(daysLeft*BIRTHS_PER_DAY).toLocaleString();
+  deaths.innerText=Math.floor(daysLeft*DEATHS_PER_DAY).toLocaleString();
 
-  document.getElementById("births").innerHTML =
-    Math.floor(daysLeft*BIRTHS_PER_DAY).toLocaleString();
-
-  document.getElementById("deaths").innerHTML =
-    Math.floor(daysLeft*DEATHS_PER_DAY).toLocaleString();
-
-  // PAYDAYS
-  let pd=0;
-  let d2=new Date(now);
-  while(d2<targetDate){
-    if(d2.getDate()==28) pd++;
-    d2.setDate(d2.getDate()+1);
+  // PAYDAYS FUTURE
+  let pd=0, p=new Date(now);
+  while(p<targetDate){
+    if(p.getDate()==28) pd++;
+    p.setDate(p.getDate()+1);
   }
-  document.getElementById("paydays").innerHTML=pd;
+  paydays.innerText=pd;
+
+  // PAYCHECKS EARNED
+  let earned=0, e=new Date(startDate);
+  while(e<now){
+    if(e.getDate()==28) earned++;
+    e.setDate(e.getDate()+1);
+  }
+  earnedPay.innerText=earned;
 
   // BIN DAYS
-  let b=new Date("2026-03-20"),bins=0;
-  while(b<targetDate){
-    if(b>now) bins++;
-    b.setDate(b.getDate()+14);
-  }
-  document.getElementById("bins").innerHTML=bins;
+ let binCount = 0;
+let b = new Date("2026-03-20");
 
-  document.getElementById("moonCycles").innerHTML =
-    Math.floor(diff/(29.53*86400000));
+while(b < targetDate){
+  if(b > now) binCount++;
+  b.setDate(b.getDate() + 14);
+}
 
-  document.getElementById("movies").innerHTML =
-    Math.floor(diff/(2*3600000));
+document.getElementById("bins").innerText = binCount; 
+  // MOON
+  moon.innerText=Math.floor(diff/(29.53*86400000));
+
+  // MOVIES
+  movies.innerText=Math.floor(diff/(2*3600000));
 
   // EASTENDERS
-  let ee=0;
-  let eedate = new Date(now);
-  while(eedate < targetDate){
-    eedate.setDate(eedate.getDate()+1);
-    if(eedate.getDay()>=1 && eedate.getDay()<=4) ee++;
+  let ee=0, ed=new Date(now);
+  while(ed<targetDate){
+    ed.setDate(ed.getDate()+1);
+    if(ed.getDay()>=1 && ed.getDay()<=4) ee++;
   }
-  document.getElementById("eastenders").innerHTML = ee;
+  document.getElementById("ee").innerText=ee;
+
+  // CELEBRATION
+  if(now.getHours()==9 && now.getMinutes()<5){
+    spawnConfetti();
+  }
 }
 
 function spawnConfetti(){
-  const container = document.getElementById("celebration");
-
   for(let i=0;i<4;i++){
-    const el = document.createElement("div");
-    el.className="confetti";
-    el.innerText=["🎉","✨","🎊"][Math.floor(Math.random()*3)];
-    el.style.left = Math.random()*100+"%";
-
-    container.appendChild(el);
+    const el=document.createElement("div");
+    el.innerText="🎉";
+    el.style.position="absolute";
+    el.style.left=Math.random()*100+"%";
+    celebration.appendChild(el);
     setTimeout(()=>el.remove(),3000);
   }
 }
